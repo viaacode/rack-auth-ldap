@@ -26,7 +26,13 @@ describe Rack::Auth::Ldap do
 
   def unprotected_app
     Rack::Lint.new lambda { |env|
-      [ 200, {'Content-Type' => 'text/plain'}, ["Hi #{env['REMOTE_USER']}"] ]
+        attrs = env['rack.session'][:attributes]
+      [ 200,
+        {'Content-Type' => 'text/plain'},
+        [ "Hi #{env['REMOTE_USER']}" ] + [ :uid, :cn, :sn ].map do |attr|
+          attrs[attr] ? ":#{attrs[attr].first}:" : ''
+        end
+      ]
     }
   end
 
@@ -84,6 +90,16 @@ describe Rack::Auth::Ldap do
       expect(response.client_error?).to be false
       expect(response.status).to eq 200
       expect(response.body.to_s).to eq 'Hi testuser'
+    end
+  end
+
+  it 'adds ldap attrs to the session if correct credentials are specified' do
+    request_with_basic_auth 'testuser', 'testpassword' do |response|
+      response.client_error?.should be false
+      response.status.should == 200
+      response.body.should include ':test:'
+      response.body.should include ':LDAP test user:'
+      response.body.should_not include ':TEST:'
     end
   end
 

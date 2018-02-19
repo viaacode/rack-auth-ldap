@@ -4,7 +4,9 @@ production: &ldap_defaults
   auth: false
   port: <%= ENV['PORT'] || '3897' %>
   username_ldap_attribut: uid
-
+  attributes:
+      - uid
+      - cn
 
 test:
   <<: *ldap_defaults

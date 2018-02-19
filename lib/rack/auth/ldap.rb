@@ -71,7 +71,8 @@ module Rack
           :ldaps => false,
           :starttls => false,
           :tls_options => nil,
-          :debug => false
+          :debug => false,
+          :attributes => ['uid']
         }
       end
     end
@@ -109,8 +110,10 @@ module Rack
         auth = Ldap::Request.new(env)
         return unauthorized unless auth.provided?
         return bad_request unless auth.basic?
-        if valid?(auth)
+        ldap_attributes = attributes(auth)
+        if ldap_attributes
           env['REMOTE_USER'] = auth.username
+          Rack::Request.new(env).session[:attributes] = ldap_attributes
           return @app.call(env)
         end
         unauthorized
@@ -128,7 +131,7 @@ module Rack
       # do the LDAP connection => search => bind with the credentials get into request headers
       # @param [Rack::Auth::Ldap::Request] auth a LDAP authenticator object
       # @return [TrueClass,FalseClass] Boolean true/false
-      def valid?(auth)
+      def attributes(auth)
         # how to connect to the ldap server: ldap, ldaps, ldap + starttls
         if @config.ldaps
           enc = { :method => :simple_tls }
@@ -159,9 +162,13 @@ module Rack
         # find the user and rebind as them to test the password
         #return conn.bind_as(:filter => filter, :password => auth.password)
         $stdout.puts "doing bind_as password.size: #{auth.password.size}..." if @config.debug
-        ret = conn.bind_as(:filter => filter, :password => auth.password)
+        ret = conn.bind_as(:filter => filter, :password => auth.password, :attributes => @config.attributes)
         $stdout.puts "bind_as => #{ret.inspect}" if @config.debug
-        ret
+        return false unless ret.is_a? Array
+        entry = ret.first
+        entry.attribute_names.each_with_object({}) do |key,attributes|
+            attributes[key] = entry[key]
+        end
       end
 
       private
