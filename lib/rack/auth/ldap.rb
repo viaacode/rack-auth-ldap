@@ -142,6 +142,7 @@ module Rack
           enc = nil             # just straight ldap
         end
         conn = Net::LDAP.new( :host => @config.hostname, :port => @config.port,
+                              :hosts => @config.hosts,
                               :base => @config.basedn,
                               :encryption => enc )
 
