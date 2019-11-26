@@ -3,12 +3,22 @@ objectclass: top
 objectclass: organizationalUnit
 ou: users
 
-dn: uid=testuser,ou=users,dc=test
+dn: uid=testuid,ou=users,dc=test
 objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: inetOrgPerson
-cn: LDAP test user
+cn: LDAP test user testuid
 sn: TEST
-uid: test
+uid: testuid
+userPassword: testpassword
+
+dn: mail=testmail,ou=users,dc=test
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: LDAP test user testmail
+sn: TEST
+mail: testmail
 userPassword: testpassword

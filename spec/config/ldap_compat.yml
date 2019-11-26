@@ -1,17 +1,14 @@
 production: &ldap_defaults
-  hosts:
-      - - localhost
-        - 3897
+  hostname: localhost
   basedn: ou=users,dc=test
   auth: false
   port: 3897
-  username_ldap_attribute:
-      - mail
-      - uid
+  username_ldap_attribute: uid
   attributes:
       - mail
       - uid
       - cn
+
 
 test:
   <<: *ldap_defaults

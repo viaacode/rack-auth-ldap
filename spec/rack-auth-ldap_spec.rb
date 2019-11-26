@@ -29,7 +29,7 @@ describe Rack::Auth::Ldap do
         attrs = env['rack.session'][:attributes]
       [ 200,
         {'Content-Type' => 'text/plain'},
-        [ "Hi #{env['REMOTE_USER']}" ] + [ :uid, :cn, :sn ].map do |attr|
+        [ "Hi #{env['REMOTE_USER']}" ] + [ :uid, :mail, :cn, :sn ].map do |attr|
           attrs[attr] ? ":#{attrs[attr].first}:" : ''
         end
       ]
@@ -42,8 +42,10 @@ describe Rack::Auth::Ldap do
     app
   end
 
-  before do
-    @request = Rack::MockRequest.new(protected_app)
+  def protected_app_compat
+    app = Rack::Auth::Ldap.new(unprotected_app,{:file => "./spec/config/ldap_compat.yml"})
+    app.realm = realm
+    app
   end
 
   def request_with_basic_auth(username, password, &block)
@@ -72,6 +74,27 @@ describe Rack::Auth::Ldap do
      expect(app.config.port).to eq(9090)
   end
 
+  shared_examples "when credentials are specified" do |username|
+      it 'should return application output if correct credentials are specified' do
+        request_with_basic_auth username, 'testpassword' do |response|
+          response.client_error?.should be false
+          response.status.should == 200
+          response.body.should include "Hi #{username}"
+        end
+      end
+
+      it 'adds ldap attrs to the session if correct credentials are specified' do
+        request_with_basic_auth username, 'testpassword' do |response|
+          response.body.should include ":LDAP test user #{username}:"
+          response.body.should_not include ':TEST:'
+        end
+      end
+  end
+
+  before do
+    @request = Rack::MockRequest.new(protected_app)
+  end
+
   it 'should challenge correctly when no credentials are specified' do
     request do |response|
       assert_basic_auth_challenge response
@@ -85,21 +108,9 @@ describe Rack::Auth::Ldap do
     end
   end
 
-  it 'should return application output if correct credentials are specified' do
-    request_with_basic_auth 'testuser', 'testpassword' do |response|
-      expect(response.client_error?).to be false
-      expect(response.status).to eq 200
-      expect(response.body.to_s).to eq 'Hi testuser'
-    end
-  end
-
-  it 'adds ldap attrs to the session if correct credentials are specified' do
-    request_with_basic_auth 'testuser', 'testpassword' do |response|
-      response.client_error?.should be false
-      response.status.should == 200
-      response.body.should include ':test:'
-      response.body.should include ':LDAP test user:'
-      response.body.should_not include ':TEST:'
+  [ 'mail', 'uid' ].each do |auth_attr|
+    context "when authenticating with #{auth_attr} attribute" do
+      include_examples "when credentials are specified", "test#{auth_attr}"
     end
   end
 
@@ -123,4 +134,15 @@ describe Rack::Auth::Ldap do
     app = Rack::Auth::Basic.new(unprotected_app, realm) { true }
     expect(realm).to eq app.realm
   end
+
+  # Changes where done to the config file format:
+  # This test ensures backoards compatibility with the old config file format
+  context 'backwards compatibility' do
+    before do
+      @request = Rack::MockRequest.new(protected_app_compat)
+    end
+
+    include_examples "when credentials are specified", "testuid"
+  end
+
 end

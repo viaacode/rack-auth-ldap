@@ -67,7 +67,7 @@ module Rack
           :auth => false,
           :port => 389,
           :scope => :subtree,
-          :username_ldap_attribute => 'uid',
+          :username_ldap_attribute => [ 'uid' ],
           :ldaps => false,
           :starttls => false,
           :tls_options => nil,
@@ -155,16 +155,20 @@ module Rack
           return false unless conn.bind
         end
 
-        filter = Net::LDAP::Filter.eq(@config.username_ldap_attribute,
-                                      auth.username)
+        ret = nil
+        Array(@config.username_ldap_attribute).find do |username_ldap_attribute|
+          filter = Net::LDAP::Filter.eq(username_ldap_attribute,
+                                        auth.username)
 
-        $stdout.puts "Net::LDAP::Filter.eq => #{filter.inspect}" if @config.debug
+          $stdout.puts "Net::LDAP::Filter.eq => #{filter.inspect}" if @config.debug
 
-        # find the user and rebind as them to test the password
-        #return conn.bind_as(:filter => filter, :password => auth.password)
-        $stdout.puts "doing bind_as password.size: #{auth.password.size}..." if @config.debug
-        ret = conn.bind_as(:filter => filter, :password => auth.password, :attributes => @config.attributes)
-        $stdout.puts "bind_as => #{ret.inspect}" if @config.debug
+          # find the user and rebind as them to test the password
+          # return conn.bind_as(:filter => filter, :password => auth.password)
+          $stdout.puts "doing bind_as password.size: #{auth.password.size}..." if @config.debug
+          ret = conn.bind_as(:filter => filter, :password => auth.password, :attributes => @config.attributes)
+          $stdout.puts "bind_as => #{ret.inspect}" if @config.debug
+          ret.is_a? Array
+        end
         return false unless ret.is_a? Array
         entry = ret.first
         entry.attribute_names.each_with_object({}) do |key,attributes|
