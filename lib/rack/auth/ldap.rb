@@ -144,6 +144,7 @@ module Rack
         conn = Net::LDAP.new( :host => @config.hostname, :port => @config.port,
                               :hosts => @config.hosts,
                               :base => @config.basedn,
+                              :connect_timeout => 2,
                               :encryption => enc )
 
         $stdout.puts "Net::LDAP.new => #{conn.inspect}" if @config.debug
