@@ -1,10 +1,11 @@
 production: &ldap_defaults
+  hostname: <%= ENV['HOSTNAME'] || 'localhost' %>
   hosts:
       - - localhost
         - 3897
   basedn: ou=users,dc=test
   auth: false
-  port: 3897
+  port: <%= ENV['PORT'] || '3897' %>
   username_ldap_attribute:
       - mail
       - uid

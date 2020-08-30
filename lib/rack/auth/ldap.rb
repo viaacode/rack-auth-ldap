@@ -8,6 +8,7 @@ require 'net/ldap'
 require 'rack/auth/abstract/handler'
 require 'rack/auth/abstract/request'
 require 'yaml'
+require 'erb'
 
 # the rack module from Rack Sources
 module Rack
